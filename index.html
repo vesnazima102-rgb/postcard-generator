@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор открыток</title>
+    <style>
+        :root {
+            --primary-color: #ff3366;
+            --primary-hover: #e62e5c;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(180deg, #050b14 0%, #0a1b33 60%, #102a4a 100%);
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+            position: relative;
+            overflow-x: hidden;
+            transition: background 0.5s ease;
+        }
+
+        #snowCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .bg-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 35vw;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.04);
+            z-index: 1;
+            pointer-events: none;
+            user-select: none;
+            display: none;
+            line-height: 1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            padding: 25px;
+            color: var(--text-main);
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 60px;
+        }
+
+        .mode-switcher {
+            position: absolute;
+            top: -50px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.25);
+            border: none;
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            backdrop-filter: blur(5px);
+            transition: 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--primary-color);
+        }
+
+        .image-container {
+            width: 100%;
+            height: 280px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slide-title {
+            color: var(--primary-color);
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .slide-desc {
+            color: var(--text-muted);
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .dots {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: 0.3s;
+        }
+
+        .dot.active {
+            width: 20px;
+            border-radius: 4px;
+            background: var(--primary-color);
+        }
+
+        .editor-panel {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 65vh;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .editor-panel.active {
+            display: flex;
+        }
+
+        .viewer-panel {
+            display: flex;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .viewer-panel.hidden {
+            display: none;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-muted);
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            height: 50px;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .share-box {
+            margin-top: 10px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="snowCanvas"></canvas>
+    <div class="bg-watermark" id="bgWatermark">8</div>
+
+    <div class="container">
+        <div class="mode-switcher">
+            <button class="mode-btn active" id="viewModeBtn" onclick="switchMode('view')">Просмотр</button>
+            <button class="mode-btn" id="editModeBtn" onclick="switchMode('edit')">Редактор</button>
+        </div>
+
+        <div class="viewer-panel" id="viewerPanel">
+            <div class="image-container">
+                <img id="slideImage" src="" alt="Слайд">
+            </div>
+            <div class="slide-title" id="slideTitle">Заголовок</div>
+            <div class="slide-desc" id="slideDesc">Описание</div>
+
+            <div class="nav-buttons">
+                <button class="btn" id="prevBtn" onclick="changeSlide(-1)">Предыдущее</button>
+                <button class="btn" id="nextBtn" onclick="changeSlide(1)">Следующее</button>
+            </div>
+
+            <div class="dots" id="dotsContainer"></div>
+        </div>
+
+        <div class="editor-panel" id="editorPanel">
+            <h3 style="color: var(--primary-color); text-align: center; margin-bottom: 2px;">Редактор открытки</h3>
+            
+            <div class="form-group" style="background: #f9f9f9; padding: 10px; border-radius: 10px; border: 1px dashed #ccc;">
+                <label style="color: var(--primary-color);">🎨 Праздничная тема и фон:</label>
+                <select id="bgSelect" onchange="updateGlobalTheme()">
+                    <option value="newyear">🎄 Новый год (Метель, ёлки, Санта, подарки)</option>
+                    <option value="halloween">🎃 Хэллоуин (Оранжевые искры, тыквы)</option>
+                    <option value="marta">💐 8 Марта (Цветы и цифра 8)</option>
+                    <option value="valentine">💖 День Валентина (Сердечки и летящие фразы)</option>
+                    <option value="custom">🖼 Своя картинка-фон</option>
+                </select>
+                <input type="text" id="customBgInput" placeholder="Вставьте ссылку на картинку..." style="margin-top: 6px; display: none;" oninput="updateCustomBackground()">
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 2px 0;">
+
+            <div class="form-group">
+                <label>Ссылка на картинку слайда:</label>
+                <input type="text" id="editImage" placeholder="https://..." oninput="updateCurrentSlideData()">
+            </div>
+
+            <div class="form-group">
+                <label>Текст над картинкой (Заголовок):</label>
+                <textarea id="editTitle" placeholder="Заголовок..." oninput="updateCurrentSlideData()"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Текст под картинкой (Описание):</label>
+                <textarea id="editDesc" placeholder="Описание..." oninput="updateCurrentSlideData()"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: var(--text-muted);">
+                <span>Слайд № <span id="currentSlideNum">1</span></span>
+                <span id="totalSlidesNum">из 1</span>
+            </div>
+
+            <div class="editor-actions">
+                <button class="btn btn-secondary" onclick="prevEditSlide()">← Назад</button>
+                <button class="btn btn-secondary" onclick="nextEditSlide()">Вперед →</button>
+            </div>
+
+            <div class="editor-actions">
+                <button class="btn" onclick="addNewSlide()">+ Слайд</button>
+                <button class="btn btn-danger" onclick="deleteCurrentSlide()">Удалить</button>
+            </div>
+
+            <div class="share-box">
+                <button class="btn" style="background: #28a745; width: 100%;" onclick="generateShareLink()">🔗 Создать ссылку на открытку</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let postcardData = {
+            theme: "newyear",
+            customBg: "",
+            slides: [
+                {
+                    image: "https://picsum.photos/400/300?1",
+                    title: "Здоровье самый главный ресурс\nБерегите его !",
+                    desc: "Будь счастлива каждый день ✨"
+                },
+                {
+                    image: "https://picsum.photos/400/300?2",
+                    title: "Пусть все мечты сбываются!",
+                    desc: "С праздником! 🎉"
+                }
+            ]
+        };
+
+        let currentSlide = 0;
+
+        function applyThemeVisuals() {
+            const watermark = document.getElementById('bgWatermark');
+            if (watermark) watermark.style.display = 'none';
+            document.body.style.backgroundImage = "";
+
+            if (postcardData.theme === 'newyear') {
+                document.body.style.background = "linear-gradient(180deg, #050b14 0%, #0a1b33 60%, #102a4a 100%)";
+            } else if (postcardData.theme === 'halloween') {
+                document.body.style.background = "linear-gradient(180deg, #1f0815 0%, #2e0c1f 60%, #0d0208 100%)";
+            } else if (postcardData.theme === 'marta') {
+                document.body.style.background = "linear-gradient(180deg, #2b0c1e 0%, #54163b 60%, #1c0512 100%)";
+                if (watermark) watermark.style.display = 'block';
+            } else if (postcardData.theme === 'valentine') {
+                document.body.style.background = "linear-gradient(180deg, #2b0b14 0%, #521226 60%, #1a040b 100%)";
+            } else if (postcardData.theme === 'custom') {
+                if (postcardData.customBg) {
+                    document.body.style.backgroundImage = `url('${postcardData.customBg}')`;
+                    document.body.style.backgroundSize = 'cover';
+                    document.body.style.backgroundPosition = 'center';
+                }
+            }
+            initParticles();
+        }
+
+        function updateGlobalTheme() {
+            const select = document.getElementById('bgSelect');
+            const customInput = document.getElementById('customBgInput');
+            
+            if (select && select.value === 'custom') {
+                if (customInput) customInput.style.display = 'block';
+                postcardData.theme = 'custom';
+                postcardData.customBg = customInput ? customInput.value : '';
+            } else {
+                if (customInput) customInput.style.display = 'none';
+                postcardData.theme = select ? select.value : 'newyear';
+                postcardData.customBg = "";
+            }
+            applyThemeVisuals();
+        }
+
+        function updateCustomBackground() {
+            const customInput = document.getElementById('customBgInput');
+            if (customInput) {
+                postcardData.customBg = customInput.value;
+                applyThemeVisuals();
+            }
+        }
+
+        // АНИМАЦИЯ
+        const canvas = document.getElementById('snowCanvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        let width = canvas ? canvas.width = window.innerWidth : 800;
+        let height = canvas ? canvas.height = window.innerHeight : 600;
+
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+        });
+
+        let particles = [];
+        let floatingTexts = [];
+
+        function initParticles() {
+            particles = [];
+            floatingTexts = [];
+            const count = 70; // Увеличили количество частиц для метели со стикерами
+
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    r: Math.random() * 3 + 2,
+                    speedY: Math.random() * 1.5 + 0.6,
+                    speedX: (Math.random() - 0.5) * 1.2,
+                    char: getRandomChar()
+                });
+            }
+
+            if (postcardData.theme === 'valentine') {
+                const phrases = [
+                    "Я долго искал подходящие слова, но решил сказать просто: я люблю тебя ❤️",
+                    "Ты — моё всё и даже больше ✨",
+                    "С тобой каждый день наполнен смыслом 💖",
+                    "Моё сердце бьется только для тебя 💌",
+                    "Ты моё самое яркое счастье 🌹",
+                    "Люблю тебя бесконечно и крепко 💫",
+                    "Рядом с тобой весь мир ярче 🌸"
+                ];
+                phrases.forEach((txt) => {
+                    floatingTexts.push({
+                        text: txt,
+                        x: Math.random() * (width - 300),
+                        y: Math.random() * height,
+                        speedX: (Math.random() * 0.6 + 0.3) * (Math.random() > 0.5 ? 1 : -1),
+                        speedY: (Math.random() - 0.5) * 0.3,
+                        fontSize: Math.floor(Math.random() * 4 + 14)
+                    });
+                });
+            }
+        }
+
+        function getRandomChar() {
+            if (postcardData.theme === 'newyear') {
+                // Часть частиц — обычный белый снег, а часть — стикеры!
+                const isSnowflake = Math.random() > 0.45;
+                if (isSnowflake) return null; // Обычная снежинка
+                const items = ['🎄', '🎅', '🎁', '🧨', '🎇', '🍾', '✨', '❄️'];
+                return items[Math.floor(Math.random() * items.length)];
+            } else if (postcardData.theme === 'halloween') {
+                const items = ['🎃', '✨', '🦇', '🔥'];
+                return items[Math.floor(Math.random() * items.length)];
+            } else if (postcardData.theme === 'marta') {
+                const flowers = ['🌷', '🌹', '🌸', '🌼', '💐', '🌺'];
+                return flowers[Math.floor(Math.random() * flowers.length)];
+            } else if (postcardData.theme === 'valentine') {
+                const hearts = ['❤️', '💖', '💘', '💌', '✨'];
+                return hearts[Math.floor(Math.random() * hearts.length)];
+            }
+            return null;
+        }
+
+        function draw() {
+            if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+
+                // Отрисовка снега, стикеров, цветов и искр
+                particles.forEach((p, i) => {
+                    ctx.save();
+                    if (p.char) {
+                        ctx.font = `${p.r * 6}px sans-serif`;
+                        ctx.fillText(p.char, p.x, p.y);
+                    } else {
+                        // Обычные летящие снежинки
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+
+                    if (p.y > height + 30) {
+                        particles[i].y = -30;
+                        particles[i].x = Math.random() * width;
+                    }
+                    if (p.x < -30) p.x = width + 30;
+                    if (p.x > width + 30) p.x = -30;
+                });
+
+                // Отрисовка летящих фраз для Валентинова дня
+                if (postcardData.theme === 'valentine') {
+                    floatingTexts.forEach((ft) => {
+                        ctx.save();
+                        ctx.font = `${ft.fontSize}px 'Segoe UI', sans-serif`;
+                        ctx.fillStyle = "rgba(255, 182, 193, 0.8)";
+                        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+                        ctx.shadowBlur = 4;
+                        ctx.fillText(ft.text, ft.x, ft.y);
+                        ctx.restore();
+
+                        ft.x += ft.speedX;
+                        ft.y += ft.speedY;
+
+                        if (ft.x < -350) ft.x = width + 50;
+                        if (ft.x > width + 50) ft.x = -350;
+                        if (ft.y < 0) ft.y = height;
+                        if (ft.y > height) ft.y = 0;
+                    });
+                }
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        loadFromHash();
+        applyThemeVisuals();
+        updateView();
+        draw();
+
+        function loadFromHash() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                try {
+                    const decodedData = JSON.parse(decodeURIComponent(escape(atob(hash))));
+                    if (decodedData && decodedData.slides) {
+                        postcardData = decodedData;
+                    }
+                } catch (e) {}
+            }
+        }
+
+        function updateView() {
+            if (!postcardData.slides || postcardData.slides.length === 0) return;
+            
+            const slide = postcardData.slides[currentSlide];
+            const imgEl = document.getElementById('slideImage');
+            const titleEl = document.getElementById('slideTitle');
+            const descEl = document.getElementById('slideDesc');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            if (imgEl) imgEl.src = slide.image;
+            if (titleEl) titleEl.innerHTML = slide.title.replace(/\n/g, '<br>');
+            if (descEl) descEl.innerHTML = slide.desc.replace(/\n/g, '<br>');
+
+            if (prevBtn) prevBtn.disabled = currentSlide === 0;
+            if (nextBtn) nextBtn.disabled = currentSlide === postcardData.slides.length - 1;
+
+            const dotsContainer = document.getElementById('dotsContainer');
+            if (dotsContainer) {
+                dotsContainer.innerHTML = '';
+                postcardData.slides.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = `dot ${index === currentSlide ? 'active' : ''}`;
+                    dotsContainer.appendChild(dot);
+                });
+            }
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= postcardData.slides.length) currentSlide = postcardData.slides.length - 1;
+            updateView();
+        }
+
+        function switchMode(mode) {
+            const viewer = document.getElementById('viewerPanel');
+            const editor = document.getElementById('editorPanel');
+            const viewBtn = document.getElementById('viewModeBtn');
+            const editBtn = document.getElementById('editModeBtn');
+
+            if (mode === 'edit') {
+                if (viewer) viewer.classList.add('hidden');
+                if (editor) editor.classList.add('active');
+                if (viewBtn) viewBtn.classList.remove('active');
+                if (editBtn) editBtn.classList.add('active');
+                loadIntoEditor();
+            } else {
+                if (viewer) viewer.classList.remove('hidden');
+                if (editor) editor.classList.remove('active');
+                if (viewBtn) viewBtn.classList.add('active');
+                if (editBtn) editBtn.classList.remove('active');
+                updateView();
+            }
+        }
+
+        function loadIntoEditor() {
+            if (!postcardData.slides || postcardData.slides.length === 0) return;
+            const slide = postcardData.slides[currentSlide];
+            
+            const editImg = document.getElementById('editImage');
+            const editTitle = document.getElementById('editTitle');
+            const editDesc = document.getElementById('editDesc');
+            const curNum = document.getElementById('currentSlideNum');
+            const totNum = document.getElementById('totalSlidesNum');
+
+            if (editImg) editImg.value = slide.image;
+            if (editTitle) editTitle.value = slide.title;
+            if (editDesc) editDesc.value = slide.desc;
+            if (curNum) curNum.innerText = currentSlide + 1;
+            if (totNum) totNum.innerText = `из ${postcardData.slides.length}`;
+
+            const select = document.getElementById('bgSelect');
+            const customInput = document.getElementById('customBgInput');
+            if (select) {
+                if (postcardData.theme === 'custom') {
+                    select.value = 'custom';
+                    if (customInput) {
+                        customInput.style.display = 'block';
+                        customInput.value = postcardData.customBg || '';
+                    }
+                } else {
+                    select.value = postcardData.theme || 'newyear';
+                    if (customInput) customInput.style.display = 'none';
+                }
+            }
+        }
+
+        function updateCurrentSlideData() {
+            if (!postcardData.slides || postcardData.slides.length === 0) return;
+            const editImg = document.getElementById('editImage');
+            const editTitle = document.getElementById('editTitle');
+            const editDesc = document.getElementById('editDesc');
+
+            if (editImg) postcardData.slides[currentSlide].image = editImg.value;
+            if (editTitle) postcardData.slides[currentSlide].title = editTitle.value;
+            if (editDesc) postcardData.slides[currentSlide].desc = editDesc.value;
+        }
+
+        function nextEditSlide() {
+            if (postcardData.slides && currentSlide < postcardData.slides.length - 1) {
+                currentSlide++;
+                loadIntoEditor();
+            }
+        }
+
+        function prevEditSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                loadIntoEditor();
+            }
+        }
+
+        function addNewSlide() {
+            if (!postcardData.slides) postcardData.slides = [];
+            postcardData.slides.push({
+                image: "https://picsum.photos/400/300?3",
+                title: "Новый заголовок",
+                desc: "Новое описание"
+            });
+            currentSlide = postcardData.slides.length - 1;
+            loadIntoEditor();
+        }
+
+        function deleteCurrentSlide() {
+            if (postcardData.slides.length <= 1) {
+                alert("Нельзя удалить последний слайд!");
+                return;
+            }
+            postcardData.slides.splice(currentSlide, 1);
+            if (currentSlide >= postcardData.slides.length) {
+                currentSlide = postcardData.slides.length - 1;
+            }
+            loadIntoEditor();
+        }
+
+        function generateShareLink() {
+            try {
+                const jsonStr = JSON.stringify(postcardData);
+                const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+                const shareUrl = window.location.origin + window.location.pathname + '#' + base64;
+                
+                prompt("Ссылка на вашу уникальную открытку готова! Скопируйте её:", shareUrl);
+            } catch (e) {
+                alert("Ошибка создания ссылки!");
+            }
+        }
+    </script>
+</body>
+</html>
